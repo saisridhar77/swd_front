@@ -12,7 +12,7 @@ const CSAPortal = ({ onBack }) => {
   const [approving, setApproving] = useState(false);
   const [togglingVisibility, setTogglingVisibility] = useState(false);
 
-  const API_BASE_URL = 'https://merchportalswd-796324132621.asia-south1.run.app/api';
+  const API_BASE_URL = 'http://localhost:3000/api';
 
   // Fetch bundles from API
   const fetchBundles = async () => {

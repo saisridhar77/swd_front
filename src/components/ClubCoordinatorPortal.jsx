@@ -59,11 +59,21 @@ const ClubCoordinatorPortal = ({ onBack }) => {
   const getAuthToken = () => {
     try {
       const stored = localStorage.getItem("swd_user");
-      if (!stored) return null;
+      console.log("Raw stored data:", stored);
+      
+      if (!stored) {
+        console.log("No stored user data found");
+        return null;
+      }
       
       const parsed = JSON.parse(stored);
+      console.log("Parsed user data:", parsed);
+      
       // Check if token exists in the stored data
-      return parsed.token || null;
+      const token = parsed.token || null;
+      console.log("Retrieved token:", token ? "Token exists" : "No token found");
+      
+      return token;
     } catch (err) {
       console.error("Error parsing stored user data:", err);
       return null;
@@ -167,14 +177,22 @@ const ClubCoordinatorPortal = ({ onBack }) => {
       }
 
       setLoading(true);
+      
+      // Debug authentication
+      const headers = getHeaders();
+      console.log("Request headers:", headers);
+      console.log("Bundle data being sent:", bundleForm);
+      
       const response = await axios.post(`${API_BASE_URL}/merch/club/bundles`, bundleForm, {
-        headers: getHeaders()
+        headers: headers
       });
 
       setSuccess('Bundle created successfully!');
       setBundles(prev => [response.data.data.bundle, ...prev]);
       resetBundleForm();
     } catch (error) {
+      console.error("Bundle creation error:", error);
+      console.error("Error response:", error.response);
       setError(error.response?.data?.message || 'Failed to create bundle');
     } finally {
       setLoading(false);

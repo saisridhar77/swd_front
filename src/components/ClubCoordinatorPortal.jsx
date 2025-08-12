@@ -59,8 +59,13 @@ const ClubCoordinatorPortal = ({ onBack }) => {
   const getAuthToken = () => {
     try {
       const stored = localStorage.getItem("swd_user");
-      return stored ? JSON.parse(stored).token : null;
+      if (!stored) return null;
+      
+      const parsed = JSON.parse(stored);
+      // Check if token exists in the stored data
+      return parsed.token || null;
     } catch (err) {
+      console.error("Error parsing stored user data:", err);
       return null;
     }
   };
@@ -74,16 +79,29 @@ const ClubCoordinatorPortal = ({ onBack }) => {
   // Upload image to Firebase Storage
   const uploadImage = async (file, folder = 'merch-items') => {
     try {
+      console.log('Starting image upload...', { file, folder });
       const timestamp = Date.now();
       const fileName = `${folder}/${timestamp}_${file.name}`;
-      const storageRef = ref(storage, fileName);
+      console.log('File name:', fileName);
       
+      const storageRef = ref(storage, fileName);
+      console.log('Storage reference created');
+      
+      console.log('Uploading bytes...');
       const snapshot = await uploadBytes(storageRef, file);
+      console.log('Upload successful, getting download URL...');
+      
       const downloadURL = await getDownloadURL(snapshot.ref);
+      console.log('Download URL:', downloadURL);
       
       return downloadURL;
     } catch (error) {
       console.error('Error uploading image:', error);
+      console.error('Error details:', {
+        code: error.code,
+        message: error.message,
+        stack: error.stack
+      });
       throw new Error(`Failed to upload image: ${error.message}`);
     }
   };

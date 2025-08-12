@@ -14,6 +14,31 @@ const CSAPortal = ({ onBack }) => {
 
   const API_BASE_URL = 'https://merchportalswd-796324132621.asia-south1.run.app/api';
 
+  // Get auth token (same method as ClubCoordinatorPortal)
+  const getAuthToken = () => {
+    try {
+      const stored = localStorage.getItem("swd_user");
+      console.log("CSA Portal - Raw stored data:", stored);
+      
+      if (!stored) {
+        console.log("CSA Portal - No stored user data found");
+        return null;
+      }
+      
+      const parsed = JSON.parse(stored);
+      console.log("CSA Portal - Parsed user data:", parsed);
+      
+      // Check if token exists in the stored data
+      const token = parsed.token || null;
+      console.log("CSA Portal - Retrieved token:", token ? "Token exists" : "No token found");
+      
+      return token;
+    } catch (err) {
+      console.error("CSA Portal - Error parsing stored user data:", err);
+      return null;
+    }
+  };
+
   // Fetch bundles from API
   const fetchBundles = async () => {
     try {
@@ -24,7 +49,7 @@ const CSAPortal = ({ onBack }) => {
       
       const response = await fetch(url, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${getAuthToken()}`,
           'Content-Type': 'application/json'
         }
       });
@@ -53,7 +78,7 @@ const CSAPortal = ({ onBack }) => {
       const response = await fetch(`${API_BASE_URL}/merch/csa/bundles/${bundleId}/approve`, {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${getAuthToken()}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ visibility })
@@ -86,7 +111,7 @@ const CSAPortal = ({ onBack }) => {
       const response = await fetch(`${API_BASE_URL}/merch/csa/bundles/${bundleId}/visibility`, {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Authorization': `Bearer ${getAuthToken()}`,
           'Content-Type': 'application/json'
         }
       });

@@ -21,7 +21,8 @@ const App = () => {
   const handleLogin = (userData) => {
     setUser(userData);
     setUserRole(userData.role);
-    localStorage.setItem("swd_user", JSON.stringify({ user: userData }));
+    // Don't overwrite the data that LoginScreen already stored
+    // The LoginScreen already stores the complete data with token
 
     if (userData.role === "club") {
       navigate("/club_portal");

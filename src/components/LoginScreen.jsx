@@ -31,8 +31,10 @@ const LoginScreen = ({ onLogin }) => {
       );
 
       // Store the complete response data including token
+      // Store the complete response data including token
       localStorage.setItem("swd_user", JSON.stringify(response.data.data));
       console.log("Login successful:", response.data);
+      console.log("Stored user data:", response.data.data);
 
       onLogin({
         username: response.data.data.user.username,

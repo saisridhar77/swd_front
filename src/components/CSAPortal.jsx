@@ -274,137 +274,215 @@ const CSAPortal = ({ onBack }) => {
           </div>
         </div>
 
-        {/* Bundle Details Modal */}
-        {showBundleDetails && selectedBundle && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="p-6 border-b border-gray-200">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-900">{selectedBundle.title}</h2>
-                    <p className="text-gray-600 mt-1">{selectedBundle.description}</p>
-                  </div>
-                  <button
-                    onClick={() => {
-                      setShowBundleDetails(false);
-                      setSelectedBundle(null);
-                    }}
-                    className="text-gray-400 hover:text-gray-600"
-                  >
-                    <span className="sr-only">Close</span>
-                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
+                 {/* Bundle Details Modal */}
+         {showBundleDetails && selectedBundle && (
+           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+             <div className="bg-white rounded-lg max-w-6xl w-full max-h-[95vh] overflow-y-auto">
+               {/* Header */}
+               <div className="p-6 border-b border-gray-200">
+                 <div className="flex justify-between items-start">
+                   <div>
+                     <h2 className="text-2xl font-bold text-gray-900">{selectedBundle.title}</h2>
+                     <p className="text-gray-600 mt-1">{selectedBundle.description}</p>
+                   </div>
+                   <button
+                     onClick={() => {
+                       setShowBundleDetails(false);
+                       setSelectedBundle(null);
+                     }}
+                     className="text-gray-400 hover:text-gray-600"
+                   >
+                     <span className="sr-only">Close</span>
+                     <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                     </svg>
+                   </button>
+                 </div>
+               </div>
 
-              <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Bundle Info */}
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Bundle Information</h3>
-                    <div className="space-y-3">
-                      <div>
-                        <span className="text-sm font-medium text-gray-500">Club:</span>
-                        <p className="text-gray-900">{selectedBundle.club?.clubName}</p>
-                      </div>
-                      <div>
-                        <span className="text-sm font-medium text-gray-500">Status:</span>
-                        <div className="mt-1">{getStatusBadge(selectedBundle.approvalStatus, selectedBundle.visibility)}</div>
-                      </div>
-                      <div>
-                        <span className="text-sm font-medium text-gray-500">Created:</span>
-                        <p className="text-gray-900">
-                          {new Date(selectedBundle.createdAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                      {selectedBundle.approvedAt && (
-                        <div>
-                          <span className="text-sm font-medium text-gray-500">Approved:</span>
-                          <p className="text-gray-900">
-                            {new Date(selectedBundle.approvedAt).toLocaleDateString()}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+               {/* Bundle Info */}
+               <div className="p-6 border-b border-gray-200">
+                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Bundle Information</h3>
+                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                   <div>
+                     <span className="text-sm font-medium text-gray-500">Club:</span>
+                     <p className="text-gray-900">{selectedBundle.club?.clubName}</p>
+                   </div>
+                   <div>
+                     <span className="text-sm font-medium text-gray-500">Status:</span>
+                     <div className="mt-1">{getStatusBadge(selectedBundle.approvalStatus, selectedBundle.visibility)}</div>
+                   </div>
+                   <div>
+                     <span className="text-sm font-medium text-gray-500">Created:</span>
+                     <p className="text-gray-900">
+                       {new Date(selectedBundle.createdAt).toLocaleDateString()}
+                     </p>
+                   </div>
+                   {selectedBundle.approvedAt && (
+                     <div>
+                       <span className="text-sm font-medium text-gray-500">Approved:</span>
+                       <p className="text-gray-900">
+                         {new Date(selectedBundle.approvedAt).toLocaleDateString()}
+                       </p>
+                     </div>
+                   )}
+                 </div>
+               </div>
 
-                  {/* Actions */}
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Actions</h3>
-                    <div className="space-y-3">
-                      {selectedBundle.approvalStatus === 'pending' && (
-                        <button
-                          onClick={() => approveBundle(selectedBundle._id, true)}
-                          disabled={approving}
-                          className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
-                        >
-                          {approving ? (
-                            <>
-                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                              Approving...
-                            </>
-                          ) : (
-                            <>
-                              <CheckCircle className="w-4 h-4 mr-2" />
-                              Approve & Make Visible
-                            </>
-                          )}
-                        </button>
-                      )}
+               {/* Merch Items */}
+               {selectedBundle.merchItems && selectedBundle.merchItems.length > 0 && (
+                 <div className="p-6 border-b border-gray-200">
+                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Merch Items</h3>
+                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                     {selectedBundle.merchItems.map((item, index) => (
+                       <div key={index} className="border border-gray-200 rounded-lg p-4">
+                         <div className="aspect-square mb-3">
+                           <img 
+                             src={item.image} 
+                             alt={item.name}
+                             className="w-full h-full object-cover rounded-lg"
+                             onError={(e) => {
+                               e.target.src = 'https://via.placeholder.com/300x300?text=Image+Not+Found';
+                             }}
+                           />
+                         </div>
+                         <h4 className="font-semibold text-gray-900 mb-2">{item.name}</h4>
+                         <p className="text-lg font-bold text-green-600 mb-2">₹{item.price}</p>
+                         {item.description && (
+                           <p className="text-sm text-gray-600">{item.description}</p>
+                         )}
+                       </div>
+                     ))}
+                   </div>
+                 </div>
+               )}
 
-                      {selectedBundle.approvalStatus === 'approved' && (
-                        <button
-                          onClick={() => toggleBundleVisibility(selectedBundle._id)}
-                          disabled={togglingVisibility}
-                          className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
-                        >
-                          {togglingVisibility ? (
-                            <>
-                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                              Updating...
-                            </>
-                          ) : selectedBundle.visibility ? (
-                            <>
-                              <EyeOff className="w-4 h-4 mr-2" />
-                              Hide Bundle
-                            </>
-                          ) : (
-                            <>
-                              <Eye className="w-4 h-4 mr-2" />
-                              Make Visible
-                            </>
-                          )}
-                        </button>
-                      )}
+               {/* Size Charts */}
+               {selectedBundle.sizeCharts && selectedBundle.sizeCharts.length > 0 && (
+                 <div className="p-6 border-b border-gray-200">
+                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Size Charts</h3>
+                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                     {selectedBundle.sizeCharts.map((chart, index) => (
+                       <div key={index} className="border border-gray-200 rounded-lg p-4">
+                         <img 
+                           src={chart} 
+                           alt={`Size Chart ${index + 1}`}
+                           className="w-full h-auto rounded-lg"
+                           onError={(e) => {
+                             e.target.src = 'https://via.placeholder.com/400x300?text=Size+Chart+Not+Found';
+                           }}
+                         />
+                       </div>
+                     ))}
+                   </div>
+                 </div>
+               )}
 
-                      {selectedBundle.approvalStatus === 'pending' && (
-                        <button
-                          onClick={() => approveBundle(selectedBundle._id, false)}
-                          disabled={approving}
-                          className="w-full px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
-                        >
-                          {approving ? (
-                            <>
-                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                              Approving...
-                            </>
-                          ) : (
-                            <>
-                              <CheckCircle className="w-4 h-4 mr-2" />
-                              Approve & Keep Hidden
-                            </>
-                          )}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+               {/* Combos */}
+               {selectedBundle.combos && selectedBundle.combos.length > 0 && (
+                 <div className="p-6 border-b border-gray-200">
+                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Combos</h3>
+                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                     {selectedBundle.combos.map((combo, index) => (
+                       <div key={index} className="border border-gray-200 rounded-lg p-4">
+                         <h4 className="font-semibold text-gray-900 mb-2">{combo.name}</h4>
+                         <p className="text-lg font-bold text-blue-600 mb-2">₹{combo.comboPrice}</p>
+                         {combo.description && (
+                           <p className="text-sm text-gray-600 mb-3">{combo.description}</p>
+                         )}
+                         <div className="space-y-1">
+                           <p className="text-xs font-medium text-gray-500">Includes:</p>
+                           <div className="flex flex-wrap gap-1">
+                             {combo.items.map((item, itemIndex) => (
+                               <span 
+                                 key={itemIndex} 
+                                 className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
+                               >
+                                 {item}
+                               </span>
+                             ))}
+                           </div>
+                         </div>
+                       </div>
+                     ))}
+                   </div>
+                 </div>
+               )}
+
+               {/* Approval Actions - At the Bottom */}
+               <div className="p-6 bg-gray-50">
+                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Approval Actions</h3>
+                 <div className="flex flex-col sm:flex-row gap-3">
+                   {selectedBundle.approvalStatus === 'pending' && (
+                     <>
+                       <button
+                         onClick={() => approveBundle(selectedBundle._id, true)}
+                         disabled={approving}
+                         className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+                       >
+                         {approving ? (
+                           <>
+                             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                             Approving...
+                           </>
+                         ) : (
+                           <>
+                             <CheckCircle className="w-5 h-5 mr-2" />
+                             Approve & Make Visible
+                           </>
+                         )}
+                       </button>
+                       <button
+                         onClick={() => approveBundle(selectedBundle._id, false)}
+                         disabled={approving}
+                         className="flex-1 px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+                       >
+                         {approving ? (
+                           <>
+                             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                             Approving...
+                           </>
+                         ) : (
+                           <>
+                             <CheckCircle className="w-5 h-5 mr-2" />
+                             Approve & Keep Hidden
+                           </>
+                         )}
+                       </button>
+                     </>
+                   )}
+
+                   {selectedBundle.approvalStatus === 'approved' && (
+                     <button
+                       onClick={() => toggleBundleVisibility(selectedBundle._id)}
+                       disabled={togglingVisibility}
+                       className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+                     >
+                       {togglingVisibility ? (
+                         <>
+                           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                           Updating...
+                         </>
+                       ) : selectedBundle.visibility ? (
+                         <>
+                           <EyeOff className="w-5 h-5 mr-2" />
+                           Hide Bundle
+                         </>
+                       ) : (
+                         <>
+                           <Eye className="w-5 h-5 mr-2" />
+                           Make Visible
+                         </>
+                       )}
+                     </button>
+                   )}
+                 </div>
+               </div>
+             </div>
+           </div>
+         )}
+
+         
 
         {/* Bundles List */}
         <div className="bg-white rounded-lg shadow-sm">

@@ -19,6 +19,12 @@ const ClubCoordinatorPortal = ({ onBack }) => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   
+  // Orders state
+  const [orders, setOrders] = useState([]);
+  const [selectedBundle, setSelectedBundle] = useState(null);
+  const [ordersModalOpen, setOrdersModalOpen] = useState(false);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  
   // Bundle form state
   const [bundleForm, setBundleForm] = useState({
     title: '',
@@ -152,6 +158,68 @@ const ClubCoordinatorPortal = ({ onBack }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Fetch orders for a specific bundle
+  const fetchBundleOrders = async (bundleId) => {
+    try {
+      setOrdersLoading(true);
+      const response = await axios.get(`${API_BASE_URL}/orders/club/bundles/${bundleId}/orders`, {
+        headers: getHeaders()
+      });
+      setOrders(response.data.data.orders);
+      setSelectedBundle(response.data.data.bundle);
+      setOrdersModalOpen(true);
+    } catch (error) {
+      setError(error.response?.data?.message || 'Failed to fetch orders');
+    } finally {
+      setOrdersLoading(false);
+    }
+  };
+
+  // Download orders as CSV
+  const downloadOrdersCSV = () => {
+    if (!orders.length) return;
+
+    const headers = [
+      'Order ID',
+      'Student BITS ID',
+      'Student Name',
+      'Student Email',
+      'Items',
+      'Total Price',
+      'Order Date'
+    ];
+
+    const csvContent = [
+      headers.join(','),
+      ...orders.map(order => [
+        order._id,
+        order.studentBITSID,
+        order.studentName,
+        order.studentEmail,
+        order.items.map(item => `${item.merchName} (${item.size}) x${item.quantity}`).join('; '),
+        order.totalPrice,
+        new Date(order.createdAt).toLocaleDateString()
+      ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${selectedBundle?.title || 'bundle'}_orders.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Close orders modal
+  const closeOrdersModal = () => {
+    setOrdersModalOpen(false);
+    setOrders([]);
+    setSelectedBundle(null);
   };
 
   // Create new bundle
@@ -785,6 +853,24 @@ const ClubCoordinatorPortal = ({ onBack }) => {
                         </p>
                       </div>
                     )}
+                    
+                    {/* View Orders Button */}
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      <button
+                        onClick={() => fetchBundleOrders(bundle._id)}
+                        disabled={ordersLoading}
+                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                      >
+                        {ordersLoading ? (
+                          <div className="flex items-center">
+                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                            Loading...
+                          </div>
+                        ) : (
+                          'View Orders'
+                        )}
+                      </button>
+                    </div>
                   </div>
                 ))}
           </div>
@@ -792,6 +878,116 @@ const ClubCoordinatorPortal = ({ onBack }) => {
           </div>
         </div>
       </div>
+
+      {/* Orders Modal */}
+      {ordersModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-[90vh] overflow-hidden">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">
+                  Orders for {selectedBundle?.title}
+                </h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  {orders.length} order{orders.length !== 1 ? 's' : ''} found
+                </p>
+              </div>
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={downloadOrdersCSV}
+                  disabled={!orders.length}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Download CSV
+                </button>
+                <button
+                  onClick={closeOrdersModal}
+                  className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-auto max-h-[calc(90vh-120px)]">
+              {ordersLoading ? (
+                <div className="flex justify-center py-10">
+                  <Loader2 className="animate-spin w-8 h-8 text-gray-500" />
+                </div>
+              ) : orders.length === 0 ? (
+                <div className="text-center py-10">
+                  <p className="text-gray-500">No orders found for this bundle.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Order Details
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Student Info
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Items
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Total
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Date
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {orders.map((order) => (
+                        <tr key={order._id} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm font-medium text-gray-900">
+                              {order._id.slice(-8)}...
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="text-sm text-gray-900">
+                              <div className="font-medium">{order.studentName}</div>
+                              <div className="text-gray-500">{order.studentBITSID}</div>
+                              <div className="text-gray-500 text-xs">{order.studentEmail}</div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="space-y-1">
+                              {order.items.map((item, index) => (
+                                <div key={index} className="text-sm text-gray-900">
+                                  <span className="font-medium">{item.merchName}</span>
+                                  <span className="text-gray-500 ml-2">
+                                    Size: {item.size} | Qty: {item.quantity}
+                                  </span>
+                                  <span className="text-gray-500 ml-2">₹{item.price}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm font-bold text-gray-900">
+                              ₹{order.totalPrice}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {new Date(order.createdAt).toLocaleDateString()}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

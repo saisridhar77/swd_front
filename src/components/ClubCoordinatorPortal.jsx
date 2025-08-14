@@ -24,6 +24,7 @@ const ClubCoordinatorPortal = ({ onBack }) => {
   const [selectedBundle, setSelectedBundle] = useState(null);
   const [ordersModalOpen, setOrdersModalOpen] = useState(false);
   const [ordersLoading, setOrdersLoading] = useState(false);
+  const [bundleOrderCounts, setBundleOrderCounts] = useState({});
   
   // Bundle form state
   const [bundleForm, setBundleForm] = useState({
@@ -153,10 +154,33 @@ const ClubCoordinatorPortal = ({ onBack }) => {
         headers: getHeaders()
       });
       setBundles(response.data.data.bundles);
+      
+      // Fetch order counts for all bundles
+      await fetchBundleOrderCounts(response.data.data.bundles);
     } catch (error) {
       setError(error.response?.data?.message || 'Failed to fetch bundles');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Fetch order counts for all bundles
+  const fetchBundleOrderCounts = async (bundles) => {
+    try {
+      const counts = {};
+      for (const bundle of bundles) {
+        try {
+          const response = await axios.get(`${API_BASE_URL}/orders/club/bundles/${bundle._id}/orders`, {
+            headers: getHeaders()
+          });
+          counts[bundle._id] = response.data.data.orders.length;
+        } catch (error) {
+          counts[bundle._id] = 0;
+        }
+      }
+      setBundleOrderCounts(counts);
+    } catch (error) {
+      // Silently handle error for order counts
     }
   };
 
@@ -167,6 +191,7 @@ const ClubCoordinatorPortal = ({ onBack }) => {
       const response = await axios.get(`${API_BASE_URL}/orders/club/bundles/${bundleId}/orders`, {
         headers: getHeaders()
       });
+      
       setOrders(response.data.data.orders);
       setSelectedBundle(response.data.data.bundle);
       setOrdersModalOpen(true);
@@ -179,29 +204,41 @@ const ClubCoordinatorPortal = ({ onBack }) => {
 
   // Download orders as CSV
   const downloadOrdersCSV = () => {
-    if (!orders.length) return;
+    if (!orders.length || !selectedBundle) return;
 
+    const merchItems = selectedBundle.merchItems || bundles.find(b => b._id === selectedBundle._id)?.merchItems || [];
+    const merchHeaders = merchItems.map(item => item.name);
     const headers = [
-      'Order ID',
-      'Student BITS ID',
-      'Student Name',
       'Student Email',
-      'Items',
+      'Student Name',
+      ...merchHeaders,
+      'Combos',
       'Total Price',
       'Order Date'
     ];
 
     const csvContent = [
       headers.join(','),
-      ...orders.map(order => [
-        order._id,
-        order.studentBITSID,
-        order.studentName,
-        order.studentEmail,
-        order.items.map(item => `${item.merchName} (${item.size}) x${item.quantity}`).join('; '),
-        order.totalPrice,
-        new Date(order.createdAt).toLocaleDateString()
-      ].join(','))
+      ...orders.map(order => {
+        const merchData = merchItems.map(merchItem => {
+          const orderItem = order.items.find(item => item.merchName === merchItem.name);
+          if (orderItem) {
+            return `${orderItem.quantity}x ${orderItem.size} - ₹${orderItem.price}${orderItem.nick ? ` (${orderItem.nick})` : ''}`;
+          }
+          return '-';
+        });
+
+        return [
+          order.studentEmail,
+          order.studentName,
+          ...merchData,
+          order.combos && order.combos.length > 0 
+            ? order.combos.map(combo => `${combo.name} - ₹${combo.price}`).join('; ')
+            : 'No combos',
+          order.totalPrice,
+          new Date(order.createdAt).toLocaleDateString()
+        ].join(',');
+      })
     ].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -245,10 +282,13 @@ const ClubCoordinatorPortal = ({ onBack }) => {
 
       setSuccess('Bundle created successfully!');
       setBundles(prev => [response.data.data.bundle, ...prev]);
+      // Set order count to 0 for new bundle
+      setBundleOrderCounts(prev => ({
+        ...prev,
+        [response.data.data.bundle._id]: 0
+      }));
       resetBundleForm();
     } catch (error) {
-      console.error("Bundle creation error:", error);
-      console.error("Error response:", error.response);
       setError(error.response?.data?.message || 'Failed to create bundle');
     } finally {
       setLoading(false);
@@ -867,7 +907,12 @@ const ClubCoordinatorPortal = ({ onBack }) => {
                             Loading...
                           </div>
                         ) : (
-                          'View Orders'
+                          <div className="flex items-center space-x-2">
+                            <span>View Orders</span>
+                            <span className="px-2 py-1 bg-white bg-opacity-20 rounded-full text-xs font-medium">
+                              {bundleOrderCounts[bundle._id] || 0}
+                            </span>
+                          </div>
                         )}
                       </button>
                     </div>
@@ -912,6 +957,7 @@ const ClubCoordinatorPortal = ({ onBack }) => {
 
             {/* Modal Body */}
             <div className="p-6 overflow-auto max-h-[calc(90vh-120px)]">
+              
               {ordersLoading ? (
                 <div className="flex justify-center py-10">
                   <Loader2 className="animate-spin w-8 h-8 text-gray-500" />
@@ -926,60 +972,140 @@ const ClubCoordinatorPortal = ({ onBack }) => {
                     <thead className="bg-gray-50">
                       <tr>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Order Details
+                          Student Email
+                        </th>
+                        {(() => {
+                          // Get merch items from either selectedBundle or find in bundles list
+                          const merchItems = selectedBundle?.merchItems || bundles.find(b => b._id === selectedBundle?._id)?.merchItems || [];
+                          return merchItems.map((merchItem, index) => (
+                            <th key={index} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              {merchItem.name}
+                            </th>
+                          ));
+                        })()}
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Combos
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Student Info
+                          Total Price
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Items
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Total
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Date
+                          Order Date
                         </th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {orders.map((order) => (
-                        <tr key={order._id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-medium text-gray-900">
-                              {order._id.slice(-8)}...
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="text-sm text-gray-900">
-                              <div className="font-medium">{order.studentName}</div>
-                              <div className="text-gray-500">{order.studentBITSID}</div>
-                              <div className="text-gray-500 text-xs">{order.studentEmail}</div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="space-y-1">
-                              {order.items.map((item, index) => (
-                                <div key={index} className="text-sm text-gray-900">
-                                  <span className="font-medium">{item.merchName}</span>
-                                  <span className="text-gray-500 ml-2">
-                                    Size: {item.size} | Qty: {item.quantity}
-                                  </span>
-                                  <span className="text-gray-500 ml-2">₹{item.price}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm font-bold text-gray-900">
-                              ₹{order.totalPrice}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {new Date(order.createdAt).toLocaleDateString()}
-                          </td>
-                        </tr>
-                      ))}
+                      {/* Summary Row */}
+                      {(() => {
+                        const merchItems = selectedBundle?.merchItems || bundles.find(b => b._id === selectedBundle?._id)?.merchItems || [];
+                        return (
+                          <tr className="bg-blue-50 border-b-2 border-blue-200">
+                            <td className="px-6 py-3">
+                              <div className="text-sm font-bold text-blue-900">TOTAL ORDERS</div>
+                              <div className="text-xs text-blue-600">{orders.length} students</div>
+                            </td>
+                            {merchItems.map((merchItem, index) => {
+                              const totalQuantity = orders.reduce((sum, order) => {
+                                const orderItem = order.items.find(item => item.merchName === merchItem.name);
+                                return sum + (orderItem ? orderItem.quantity : 0);
+                              }, 0);
+                              const totalRevenue = orders.reduce((sum, order) => {
+                                const orderItem = order.items.find(item => item.merchName === merchItem.name);
+                                return sum + (orderItem ? (orderItem.quantity * orderItem.price) : 0);
+                              }, 0);
+                              
+                              return (
+                                <td key={index} className="px-6 py-3">
+                                  <div className="text-sm font-bold text-blue-900">
+                                    {totalQuantity > 0 ? `${totalQuantity} items` : '0 items'}
+                                  </div>
+                                  <div className="text-xs text-blue-600">
+                                    {totalRevenue > 0 ? `₹${totalRevenue}` : '₹0'}
+                                  </div>
+                                </td>
+                              );
+                            })}
+                            <td className="px-6 py-3">
+                              <div className="text-sm font-bold text-blue-900">
+                                {orders.reduce((sum, order) => sum + (order.combos ? order.combos.length : 0), 0)} combos
+                              </div>
+                            </td>
+                            <td className="px-6 py-3">
+                              <div className="text-sm font-bold text-blue-900">
+                                ₹{orders.reduce((sum, order) => sum + order.totalPrice, 0)}
+                              </div>
+                            </td>
+                            <td className="px-6 py-3">
+                              <div className="text-xs text-blue-600">Summary</div>
+                            </td>
+                          </tr>
+                        );
+                      })()}
+                      
+                      {orders.map((order) => {
+                        // Get merch items for this order row
+                        const merchItems = selectedBundle?.merchItems || bundles.find(b => b._id === selectedBundle?._id)?.merchItems || [];
+                        
+                        return (
+                          <tr key={order._id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4">
+                              <div className="text-sm text-gray-900">
+                                <div className="font-medium">{order.studentEmail}</div>
+                                <div className="text-gray-500 text-xs">{order.studentName}</div>
+                              </div>
+                            </td>
+                            {merchItems.map((merchItem, index) => {
+                              const orderItem = order.items.find(item => item.merchName === merchItem.name);
+                              return (
+                                <td key={index} className="px-6 py-4">
+                                  {orderItem ? (
+                                    <div className="text-sm text-gray-900">
+                                      <div className="font-medium">
+                                        {orderItem.quantity}x {orderItem.size}
+                                      </div>
+                                      <div className="text-gray-500 text-xs">
+                                        ₹{orderItem.price}
+                                      </div>
+                                      {orderItem.nick && (
+                                        <div className="mt-1">
+                                          <span className="px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded-full">
+                                            {orderItem.nick}
+                                          </span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <div className="text-sm text-gray-400">-</div>
+                                  )}
+                                </td>
+                              );
+                            })}
+                            <td className="px-6 py-4">
+                              <div className="text-sm text-gray-900">
+                                {order.combos && order.combos.length > 0 ? (
+                                  <div className="space-y-1">
+                                    {order.combos.map((combo, index) => (
+                                      <div key={index} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
+                                        {combo.name} - ₹{combo.price}
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <span className="text-gray-500 text-xs">No combos</span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm font-bold text-gray-900">
+                                ₹{order.totalPrice}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {new Date(order.createdAt).toLocaleDateString()}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>

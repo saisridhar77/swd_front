@@ -37,7 +37,8 @@ const ClubCoordinatorPortal = ({ onBack }) => {
     name: '',
     price: '',
     description: '',
-    image: ''
+    image: '',
+    nick: false
   });
 
   const [newCombo, setNewCombo] = useState({
@@ -59,19 +60,15 @@ const ClubCoordinatorPortal = ({ onBack }) => {
   const getAuthToken = () => {
     try {
       const stored = localStorage.getItem("swd_user");
-      console.log("Raw stored data:", stored);
       
       if (!stored) {
-        console.log("No stored user data found");
         return null;
       }
       
       const parsed = JSON.parse(stored);
-      console.log("Parsed user data:", parsed);
       
       // Check if token exists in the stored data
       const token = parsed.token || null;
-      console.log("Retrieved token:", token ? "Token exists" : "No token found");
       
       return token;
     } catch (err) {
@@ -89,20 +86,14 @@ const ClubCoordinatorPortal = ({ onBack }) => {
   // Upload image to Firebase Storage
   const uploadImage = async (file, folder = 'merch-items') => {
     try {
-      console.log('Starting image upload...', { file, folder });
       const timestamp = Date.now();
       const fileName = `${folder}/${timestamp}_${file.name}`;
-      console.log('File name:', fileName);
       
       const storageRef = ref(storage, fileName);
-      console.log('Storage reference created');
       
-      console.log('Uploading bytes...');
       const snapshot = await uploadBytes(storageRef, file);
-      console.log('Upload successful, getting download URL...');
       
       const downloadURL = await getDownloadURL(snapshot.ref);
-      console.log('Download URL:', downloadURL);
       
       return downloadURL;
     } catch (error) {
@@ -178,10 +169,7 @@ const ClubCoordinatorPortal = ({ onBack }) => {
 
       setLoading(true);
       
-      // Debug authentication
       const headers = getHeaders();
-      console.log("Request headers:", headers);
-      console.log("Bundle data being sent:", bundleForm);
       
       const response = await axios.post(`${API_BASE_URL}/merch/club/bundles`, bundleForm, {
         headers: headers
@@ -220,7 +208,7 @@ const ClubCoordinatorPortal = ({ onBack }) => {
       }));
     }
 
-    setNewMerchItem({ name: '', price: '', description: '', image: '' });
+    setNewMerchItem({ name: '', price: '', description: '', image: '', nick: false });
   };
 
   // Edit merch item
@@ -230,7 +218,8 @@ const ClubCoordinatorPortal = ({ onBack }) => {
       name: item.name,
       price: item.price.toString(),
       description: item.description || '',
-      image: item.image
+      image: item.image,
+      nick: item.nick
     });
     setEditingItem(index);
   };
@@ -328,7 +317,7 @@ const ClubCoordinatorPortal = ({ onBack }) => {
       sizeCharts: [],
       combos: []
     });
-    setNewMerchItem({ name: '', price: '', description: '', image: '' });
+    setNewMerchItem({ name: '', price: '', description: '', image: '', nick: false });
     setNewCombo({ name: '', items: [], comboPrice: '', description: '' });
     setNewSizeChart('');
     setEditingItem(null);
@@ -471,6 +460,20 @@ const ClubCoordinatorPortal = ({ onBack }) => {
                   rows="2"
                 />
                 
+                {/* Nick Option */}
+                <div className="mt-3 flex items-center space-x-3">
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={newMerchItem.nick}
+                      onChange={(e) => setNewMerchItem(prev => ({ ...prev, nick: e.target.checked }))}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <span className="text-sm font-medium text-gray-700">Nick Option</span>
+                  </label>
+                  <span className="text-xs text-gray-500">Enable if this item has a nick option</span>
+                </div>
+                
                 {/* Image Upload */}
                 <div className="mt-3">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Item Image *</label>
@@ -526,6 +529,7 @@ const ClubCoordinatorPortal = ({ onBack }) => {
                     <div>
                           <p className="font-medium">{item.name}</p>
                           <p className="text-sm text-gray-600">₹{item.price}</p>
+                          {item.nick && <span className="px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded-full">Nick</span>}
                         </div>
                     </div>
                       <div className="flex space-x-2">

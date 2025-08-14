@@ -3,7 +3,7 @@ import { Users } from "lucide-react";
 import axios from "axios";
 
 const LoginScreen = ({ onLogin }) => {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
@@ -11,7 +11,7 @@ const LoginScreen = ({ onLogin }) => {
     e.preventDefault();
     setError("");
 
-    if (!email || !password) {
+    if (!username || !password) {
       setError("Please fill in both fields.");
       return;
     }
@@ -20,7 +20,7 @@ const LoginScreen = ({ onLogin }) => {
       const response = await axios.post(
         "https://merchportalswd-796324132621.asia-south1.run.app/api/auth/login",
         {
-          username: email,
+          username: username,
           password: password,
         },
         {
@@ -31,17 +31,13 @@ const LoginScreen = ({ onLogin }) => {
       );
 
       // Store the complete response data including token
-      // Store the complete response data including token
       localStorage.setItem("swd_user", JSON.stringify(response.data.data));
-      console.log("Login successful:", response.data);
-      console.log("Stored user data:", response.data.data);
 
       onLogin({
         username: response.data.data.user.username,
         role: response.data.data.user.role,
         token: response.data.data.token, // Include token in user data
-      });
-      console.log("User data:", response.data.data.user.username, "role:", response.data.data.user.role); 
+      }); 
     } catch (error) {
       if (error.response) {
         setError(error.response.data.message || "Invalid credentials");
@@ -79,13 +75,13 @@ const LoginScreen = ({ onLogin }) => {
           )}
 
           <div className="mb-4">
-            <label className="block text-sm text-gray-700 mb-1">Email</label>
+            <label className="block text-sm text-gray-700 mb-1">Username</label>
             <input
               type="text"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-200"
-              placeholder="you@example.com"
+              placeholder="Never Gonna Give You Up"
               required
             />
           </div>

@@ -18,19 +18,15 @@ const CSAPortal = ({ onBack }) => {
   const getAuthToken = () => {
     try {
       const stored = localStorage.getItem("swd_user");
-      console.log("CSA Portal - Raw stored data:", stored);
       
       if (!stored) {
-        console.log("CSA Portal - No stored user data found");
         return null;
       }
       
       const parsed = JSON.parse(stored);
-      console.log("CSA Portal - Parsed user data:", parsed);
       
       // Check if token exists in the stored data
       const token = parsed.token || null;
-      console.log("CSA Portal - Retrieved token:", token ? "Token exists" : "No token found");
       
       return token;
     } catch (err) {
@@ -348,6 +344,9 @@ const CSAPortal = ({ onBack }) => {
                          </div>
                          <h4 className="font-semibold text-gray-900 mb-2">{item.name}</h4>
                          <p className="text-lg font-bold text-green-600 mb-2">₹{item.price}</p>
+                         {item.nick && (
+                           <span className="inline-block px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded-full mb-2">Nick Option</span>
+                         )}
                          {item.description && (
                            <p className="text-sm text-gray-600">{item.description}</p>
                          )}

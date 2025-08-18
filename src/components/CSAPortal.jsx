@@ -360,6 +360,7 @@ const CSAPortal = ({ onBack }) => {
   };
 
   return (
+    <>
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-200">
@@ -941,6 +942,12 @@ const CSAPortal = ({ onBack }) => {
         </div>
       </div>
     </div>
+    <footer class="w-full border-t border-gray-200 bg-gray-50 px-4 py-3 text-center text-sm text-gray-600">
+  Made with ❤️ from 
+  <span class="font-bold text-[#3aa6a1]"> Dev</span>
+  <span class="font-bold text-[#24353f]">Soc</span>
+</footer>
+    </>
   );
 };
 

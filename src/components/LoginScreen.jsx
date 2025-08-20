@@ -18,7 +18,7 @@ const LoginScreen = ({ onLogin }) => {
 
     try {
       const response = await axios.post(
-        "https://merchportalswd-796324132621.asia-south1.run.app/api/auth/login",
+        "https://merchpostalswd-690276173705.asia-south1.run.app/api/auth/login",
         {
           username: username,
           password: password,

@@ -61,7 +61,7 @@ const ClubCoordinatorPortal = ({ onBack }) => {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadingSizeChart, setUploadingSizeChart] = useState(false);
 
-  const API_BASE_URL = 'https://merchpostalswd-690276173705.asia-south1.run.app';
+  const API_BASE_URL = 'https://merchpostalswd-690276173705.asia-south1.run.app/api';
 
   // Get auth token
   const getAuthToken = () => {

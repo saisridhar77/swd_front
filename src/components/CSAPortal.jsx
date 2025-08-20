@@ -18,7 +18,7 @@ const CSAPortal = ({ onBack }) => {
   const [editingBundle, setEditingBundle] = useState(null);
   const [saving, setSaving] = useState(false);
 
-  const API_BASE_URL = 'https://merchportalswd-796324132621.asia-south1.run.app/api';
+  const API_BASE_URL = 'https://merchpostalswd-690276173705.asia-south1.run.app';
 
   // Get auth token (same method as ClubCoordinatorPortal)
   const getAuthToken = () => {

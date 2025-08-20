@@ -39,13 +39,17 @@ const ClubCoordinatorPortal = ({ onBack }) => {
   const [editingItem, setEditingItem] = useState(null);
   const [editingCombo, setEditingCombo] = useState(null);
 
+
+  const SIZE_OPTIONS = ['3XS', '2XS', 'XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL'];
+
   // Form states for adding items
   const [newMerchItem, setNewMerchItem] = useState({
     name: '',
     price: '',
     description: '',
     image: '',
-    nick: false
+    nick: false,
+    sizes: []
   });
 
   const [newCombo, setNewCombo] = useState({
@@ -302,6 +306,11 @@ const ClubCoordinatorPortal = ({ onBack }) => {
       return;
     }
 
+    if (newMerchItem.sizes.length === 0) {
+      setError('Please select at least one size for the merch item');
+      return;
+    }
+
     if (editingItem !== null) {
       // Update existing item
       const updatedItems = [...bundleForm.merchItems];
@@ -316,7 +325,7 @@ const ClubCoordinatorPortal = ({ onBack }) => {
       }));
     }
 
-    setNewMerchItem({ name: '', price: '', description: '', image: '', nick: false });
+    setNewMerchItem({ name: '', price: '', description: '', image: '', nick: false, sizes: [] });
   };
 
   // Edit merch item
@@ -327,7 +336,8 @@ const ClubCoordinatorPortal = ({ onBack }) => {
       price: item.price.toString(),
       description: item.description || '',
       image: item.image,
-      nick: item.nick
+      nick: item.nick,
+      sizes: item.sizes || []
     });
     setEditingItem(index);
   };
@@ -413,6 +423,16 @@ const ClubCoordinatorPortal = ({ onBack }) => {
       items: prev.items.includes(itemName)
         ? prev.items.filter(item => item !== itemName)
         : [...prev.items, itemName]
+    }));
+  };
+
+  
+  const toggleMerchItemSize = (size) => {
+    setNewMerchItem(prev => ({
+      ...prev,
+      sizes: prev.sizes.includes(size)
+        ? prev.sizes.filter(s => s !== size)
+        : [...prev.sizes, size]
     }));
   };
 
@@ -582,6 +602,34 @@ const ClubCoordinatorPortal = ({ onBack }) => {
                   </label>
                   <span className="text-xs text-gray-500">Enable if this item has a nick option</span>
                 </div>
+
+                {/* Size Selection */}
+                <div className="mt-3">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Available Sizes *</label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {SIZE_OPTIONS.map((size) => (
+                      <label key={size} className="flex items-center space-x-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={newMerchItem.sizes.includes(size)}
+                          onChange={() => toggleMerchItemSize(size)}
+                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        <span className="text-sm text-gray-700">{size}</span>
+                      </label>
+                    ))}
+                  </div>
+                  {newMerchItem.sizes.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      <span className="text-xs text-gray-500">Selected:</span>
+                      {newMerchItem.sizes.map((size) => (
+                        <span key={size} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
+                          {size}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 
                 {/* Image Upload */}
                 <div className="mt-3">
@@ -638,7 +686,18 @@ const ClubCoordinatorPortal = ({ onBack }) => {
                     <div>
                           <p className="font-medium">{item.name}</p>
                           <p className="text-sm text-gray-600">₹{item.price}</p>
-                          {item.nick && <span className="px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded-full">Nick</span>}
+                          <div className="flex items-center space-x-2 mt-1">
+                            {item.nick && <span className="px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded-full">Nick</span>}
+                            {item.sizes && item.sizes.length > 0 && (
+                              <div className="flex flex-wrap gap-1">
+                                {item.sizes.map((size) => (
+                                  <span key={size} className="px-1 py-0.5 text-xs bg-blue-100 text-blue-800 rounded">
+                                    {size}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         </div>
                     </div>
                       <div className="flex space-x-2">

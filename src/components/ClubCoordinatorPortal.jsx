@@ -49,6 +49,7 @@ const ClubCoordinatorPortal = ({ onBack }) => {
     description: '',
     image: '',
     nick: false,
+    nickPrice: '',
     sizes: []
   });
 
@@ -279,7 +280,9 @@ const ClubCoordinatorPortal = ({ onBack }) => {
       setLoading(true);
       
       const headers = getHeaders();
-      
+
+      console.log("Sending bundle form", bundleForm)
+
       const response = await axios.post(`${API_BASE_URL}/merch/club/bundles`, bundleForm, {
         headers: headers
       });
@@ -300,33 +303,47 @@ const ClubCoordinatorPortal = ({ onBack }) => {
   };
 
   // Add merch item to bundle
-  const addMerchItem = () => {
-    if (!newMerchItem.name.trim() || !newMerchItem.price || !newMerchItem.image) {
-      setError('Name, price, and image are required for merch items');
-      return;
-    }
+  // Add merch item to bundle
+const addMerchItem = () => {
+  if (!newMerchItem.name.trim() || !newMerchItem.price || !newMerchItem.image) {
+    setError('Name, price, and image are required for merch items');
+    return;
+  }
 
-    if (newMerchItem.sizes.length === 0) {
-      setError('Please select at least one size for the merch item');
-      return;
-    }
+  if (newMerchItem.sizes.length === 0) {
+    setError('Please select at least one size for the merch item');
+    return;
+  }
 
-    if (editingItem !== null) {
-      // Update existing item
-      const updatedItems = [...bundleForm.merchItems];
-      updatedItems[editingItem] = { ...newMerchItem, price: parseFloat(newMerchItem.price) };
-      setBundleForm(prev => ({ ...prev, merchItems: updatedItems }));
-      setEditingItem(null);
-    } else {
-      // Add new item
-      setBundleForm(prev => ({
-        ...prev,
-        merchItems: [...prev.merchItems, { ...newMerchItem, price: parseFloat(newMerchItem.price) }]
-      }));
-    }
+  if (newMerchItem.nick && !newMerchItem.nickPrice) {
+    setError('Please provide the additional price for the nick option');
+    return;
+  }
 
-    setNewMerchItem({ name: '', price: '', description: '', image: '', nick: false, sizes: [] });
-  };
+  if (editingItem !== null) {
+    // Update existing item
+    const updatedItems = [...bundleForm.merchItems];
+    updatedItems[editingItem] = { 
+      ...newMerchItem, 
+      price: parseFloat(newMerchItem.price),
+      nickPrice: newMerchItem.nick ? parseFloat(newMerchItem.nickPrice) : undefined
+    };
+    setBundleForm(prev => ({ ...prev, merchItems: updatedItems }));
+    setEditingItem(null);
+  } else {
+    // Add new item
+    setBundleForm(prev => ({
+      ...prev,
+      merchItems: [...prev.merchItems, { 
+        ...newMerchItem, 
+        price: parseFloat(newMerchItem.price),
+        nickPrice: newMerchItem.nick ? parseFloat(newMerchItem.nickPrice) : undefined
+      }]
+    }));
+  }
+
+  setNewMerchItem({ name: '', price: '', description: '', image: '', nick: false, nickPrice: '', sizes: [] });
+};
 
   // Edit merch item
   const editMerchItem = (index) => {
@@ -337,6 +354,7 @@ const ClubCoordinatorPortal = ({ onBack }) => {
       description: item.description || '',
       image: item.image,
       nick: item.nick,
+      nickPrice: item.nickPrice ? item.nickPrice.toString() : '',
       sizes: item.sizes || []
     });
     setEditingItem(index);
@@ -590,18 +608,35 @@ const ClubCoordinatorPortal = ({ onBack }) => {
                 />
                 
                 {/* Nick Option */}
-                <div className="mt-3 flex items-center space-x-3">
-                  <label className="flex items-center space-x-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={newMerchItem.nick}
-                      onChange={(e) => setNewMerchItem(prev => ({ ...prev, nick: e.target.checked }))}
-                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                    />
-                    <span className="text-sm font-medium text-gray-700">Nick Option</span>
-                  </label>
-                  <span className="text-xs text-gray-500">Enable if this item has a nick option</span>
-                </div>
+                  <div className="mt-3 flex items-center space-x-3">
+                    <label className="flex items-center space-x-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={newMerchItem.nick}
+                        onChange={(e) => setNewMerchItem(prev => ({ ...prev, nick: e.target.checked }))}
+                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      />
+                      <span className="text-sm font-medium text-gray-700">Nick Option</span>
+                    </label>
+                    <span className="text-xs text-gray-500">Enable if this item has a nick option</span>
+                  </div>
+
+                  {/* Nick Price - only show when nick is enabled */}
+                  {newMerchItem.nick && (
+                    <div className="mt-3">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Nick Price (Additional Cost) *</label>
+                      <input
+                        type="number"
+                        placeholder="Additional price for nick"
+                        value={newMerchItem.nickPrice}
+                        onChange={(e) => setNewMerchItem(prev => ({ ...prev, nickPrice: e.target.value }))}
+                        className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
+                        step="0.01"
+                        min="0"
+                      />
+                    </div>
+                  )}
+                
 
                 {/* Size Selection */}
                 <div className="mt-3">
@@ -687,7 +722,11 @@ const ClubCoordinatorPortal = ({ onBack }) => {
                           <p className="font-medium">{item.name}</p>
                           <p className="text-sm text-gray-600">₹{item.price}</p>
                           <div className="flex items-center space-x-2 mt-1">
-                            {item.nick && <span className="px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded-full">Nick</span>}
+                            {item.nick && (
+                              <span className="px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded-full">
+                                Nick (+₹{item.nickPrice})
+                              </span>
+                            )}
                             {item.sizes && item.sizes.length > 0 && (
                               <div className="flex flex-wrap gap-1">
                                 {item.sizes.map((size) => (
@@ -1176,10 +1215,10 @@ const ClubCoordinatorPortal = ({ onBack }) => {
       )}
       
     </div>
-    <footer class="w-full border-t border-gray-200 bg-gray-50 px-4 py-3 text-center text-sm text-gray-600">
-  Made with ❤️ from 
-  <span class="font-bold text-[#3aa6a1]"> Dev</span>
-  <span class="font-bold text-[#24353f]">Soc</span>
+    <footer className="w-full border-t border-gray-200 bg-gray-50 px-4 py-3 text-center text-sm text-gray-600">
+  Made with ❤️ from
+  <span className="font-bold text-[#3aa6a1]"> Dev</span>
+  <span className="font-bold text-[#24353f]">Soc</span>
 </footer>
     </>
   );

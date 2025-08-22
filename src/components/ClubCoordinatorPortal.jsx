@@ -391,6 +391,7 @@ const escapeCSV = (value) => {
 
   // Add merch item to bundle
   // Add merch item to bundle
+  // Add merch item to bundle
   const addMerchItem = () => {
     if (
       !newMerchItem.name.trim() ||

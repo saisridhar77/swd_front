@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, ArrowLeft, Eye, EyeOff, CheckCircle, Clock, Filter, Search, Package, Building, Edit2, Save, X, Loader2 } from 'lucide-react';
+import { Users, ArrowLeft, Eye, EyeOff, CheckCircle, Clock, Filter, Search, Package, Building, Edit2, Save, X, Loader2, LogOut } from 'lucide-react';
 
 const CSAPortal = ({ onBack }) => {
   const [bundles, setBundles] = useState([]);
@@ -371,8 +371,8 @@ const CSAPortal = ({ onBack }) => {
                 onClick={onBack}
                 className="flex items-center space-x-2 text-gray-600 hover:text-gray-800 transition-colors"
               >
-                <ArrowLeft className="w-5 h-5" />
-                <span className="font-medium">Back</span>
+                <LogOut className="w-5 h-5" />
+                <span className="font-medium">Logout</span>
               </button>
               <div className="h-6 w-px bg-gray-300"></div>
               <div className="flex items-center space-x-3">

@@ -65,7 +65,7 @@ const App = () => {
           user && userRole === "club" ? (
             <ClubCoordinatorPortal onBack={handleLogout} />
           ) : (
-            <Navigate to="/unauthorized" replace />
+            <LoginScreen onLogin={handleLogin} />
           )
         }
       />
@@ -76,7 +76,7 @@ const App = () => {
           user && userRole === "csa" ? (
             <CSAPortal onBack={handleLogout} />
           ) : (
-            <Navigate to="/unauthorized" replace />
+            <LoginScreen onLogin={handleLogin} />
           )
         }
       />

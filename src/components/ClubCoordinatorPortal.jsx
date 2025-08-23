@@ -10,10 +10,12 @@ import {
   X,
   Eye,
   EyeOff,
+  LogOut,
 } from "lucide-react";
 import axios from "axios";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage } from "../config/firebase";
+import * as XLSX from "xlsx";
 
 const ClubCoordinatorPortal = ({ onBack }) => {
   const [storedUser] = useState(() => {
@@ -236,118 +238,95 @@ const ClubCoordinatorPortal = ({ onBack }) => {
     }
   };
   // Helper function to properly escape CSV values
-const escapeCSV = (value) => {
-  if (value == null) return '';
-  
-  // Convert to string
-  const str = String(value);
-  
-  // If the value contains comma, newline, or double quote, wrap in quotes and escape quotes
-  if (str.includes(',') || str.includes('\n') || str.includes('\r') || str.includes('"')) {
-    return `"${str.replace(/"/g, '""')}"`;
-  }
-  
-  return str;
-};
+  const escapeCSV = (value) => {
+    if (value == null) return "";
 
-  // Download orders as CSV
-  const downloadOrdersCSV = () => {
+    // Convert to string
+    const str = String(value);
+
+    // If the value contains comma, newline, or double quote, wrap in quotes and escape quotes
+    if (str.includes(",") || str.includes("\n") || str.includes("\r") || str.includes('"')) {
+      return `"${str.replace(/"/g, '""')}"`;
+    }
+
+    return str;
+  };
+
+  
+
+  const downloadOrdersExcel = () => {
     if (!orders.length || !selectedBundle) return;
 
-  const merchItems =
-    selectedBundle.merchItems ||
-    bundles.find((b) => b._id === selectedBundle._id)?.merchItems ||
-    [];
-  const merchHeaders = merchItems.map((item) => item.name);
-  const headers = [
-    "Student Email",
-    "Student Name",
-    ...merchHeaders,
-    "Combos",
-    "Total Price",
-    "Order Date",
-  ];
+    const merchItems =
+      selectedBundle.merchItems ||
+      bundles.find((b) => b._id === selectedBundle._id)?.merchItems ||
+      [];
+    const merchHeaders = merchItems.map((item) => item.name);
+    const headers = [
+      "Student Email",
+      "Student Name",
+      ...merchHeaders,
+      "Combos",
+      "Total Price",
+    ];
 
-    const csvContent = [
-    // Escape header row
-    headers.map(header => escapeCSV(header)).join(","),
-    ...orders.map((order) => {
+    const rows = orders.map((order) => {
       const merchData = merchItems.map((merchItem) => {
-        // Check individual items first
         const orderItem = order.items.find(
           (item) => item.merchName === merchItem.name
         );
         if (orderItem) {
-          const itemData = `${orderItem.quantity}x ${orderItem.size} - Rs${
-            orderItem.price
-          }${orderItem.nick ? ` (${orderItem.nick})` : ""}`;
-          return escapeCSV(itemData);
+          return `${orderItem.quantity}x ${orderItem.size}${orderItem.nick ? ` (${orderItem.nick})` : ""}`;
         }
-
-        // Check combo items
         if (order.combos) {
           for (const combo of order.combos) {
             const comboItem = combo.items.find(
               (item) => item.itemName === merchItem.name
             );
             if (comboItem) {
-              const itemPrice = Math.round(combo.price / combo.items.length);
-              const comboData = `${combo.quantity}x ${comboItem.size} - Rs${itemPrice}${
-                comboItem.hasNick && comboItem.nick
-                  ? ` (${comboItem.nick})`
-                  : ""
-              } [Combo: ${combo.comboName}]`;
-              return escapeCSV(comboData);
+              return `${combo.quantity}x ${comboItem.size}${comboItem.hasNick && comboItem.nick ? ` (${comboItem.nick})` : ""} [Combo: ${combo.comboName}]`;
             }
           }
         }
-
-        return escapeCSV("-");
+        return "";
       });
-      const comboInfo = order.combos && order.combos.length > 0
-        ? order.combos
-            .map((combo) => `${combo.comboName || combo.name} (x${combo.quantity}) - Rs${combo.price}`)
-            .join("; ")
-        : "No combos";
+      const comboInfo =
+        order.combos && order.combos.length > 0
+          ? order.combos
+              .map(
+                (combo) =>
+                  `${combo.comboName || combo.name} (x${combo.quantity})`
+              )
+              .join("; ")
+          : "No combos";
 
-        return [
-        escapeCSV(order.studentEmail || order.studentBITSID || ""),
-        escapeCSV(order.studentName || ""),
+      return [
+        order.studentBITSID || "",
+        order.studentName || "",
         ...merchData,
-        escapeCSV(comboInfo),
-        escapeCSV(order.totalPrice),
-        escapeCSV(new Date(order.createdAt).toLocaleDateString()),
-      ].join(",");
-    }),
-  ].join("\n");
+        comboInfo,
+        order.totalPrice,
+      ];
+    });
 
-    const BOM = "\uFEFF";
-  const blob = new Blob([BOM + csvContent], { 
-    type: "text/csv;charset=utf-8;" 
-  });
-  
-  const link = document.createElement("a");
-  const url = URL.createObjectURL(blob);
-  link.setAttribute("href", url);
-  link.setAttribute(
-    "download",
-    `${selectedBundle?.title || "bundle"}_orders.csv`
-  );
-  link.style.visibility = "hidden";
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+    const worksheetData = [headers, ...rows];
+
+    const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Orders");
+
+    XLSX.writeFile(
+      workbook,
+      `${selectedBundle?.title || "bundle"}_orders.xlsx`
+    );
   };
 
-  // Close orders modal
   const closeOrdersModal = () => {
     setOrdersModalOpen(false);
     setOrders([]);
     setSelectedBundle(null);
   };
 
-  // Create new bundle
   const createBundle = async () => {
     try {
       if (!bundleForm.title.trim()) {
@@ -585,6 +564,8 @@ const escapeCSV = (value) => {
       description: "",
       image: "",
       nick: false,
+      nickPrice: "",
+      sizes: [],
     });
     setNewCombo({ name: "", items: [], comboPrice: "", description: "" });
     setNewSizeChart("");
@@ -646,8 +627,8 @@ const escapeCSV = (value) => {
                   onClick={onBack}
                   className="flex items-center space-x-2 text-gray-600 hover:text-gray-800 transition-colors"
                 >
-                  <ArrowLeft className="w-5 h-5" />
-                  <span className="font-medium">Back</span>
+                  <LogOut className="w-5 h-5" />
+                  <span className="font-medium">Logout</span>
                 </button>
                 <div className="h-6 w-px bg-gray-300"></div>
                 <div className="flex items-center space-x-3">
@@ -835,7 +816,7 @@ const escapeCSV = (value) => {
                         >
                           <input
                             type="checkbox"
-                            checked={newMerchItem.sizes.includes(size)}
+                            checked={Array.isArray(newMerchItem.sizes) && newMerchItem.sizes.includes(size)}
                             onChange={() => toggleMerchItemSize(size)}
                             className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                           />
@@ -1310,11 +1291,11 @@ const escapeCSV = (value) => {
                 </div>
                 <div className="flex items-center space-x-3">
                   <button
-                    onClick={downloadOrdersCSV}
+                    onClick={downloadOrdersExcel}
                     disabled={!orders.length}
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Download CSV
+                    Download Excel
                   </button>
                   <button
                     onClick={closeOrdersModal}

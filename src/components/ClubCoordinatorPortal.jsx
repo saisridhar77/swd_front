@@ -10,12 +10,10 @@ import {
   X,
   Eye,
   EyeOff,
-  LogOut,
 } from "lucide-react";
 import axios from "axios";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage } from "../config/firebase";
-import * as XLSX from "xlsx";
 
 const ClubCoordinatorPortal = ({ onBack }) => {
   const [storedUser] = useState(() => {
@@ -245,16 +243,20 @@ const ClubCoordinatorPortal = ({ onBack }) => {
     const str = String(value);
 
     // If the value contains comma, newline, or double quote, wrap in quotes and escape quotes
-    if (str.includes(",") || str.includes("\n") || str.includes("\r") || str.includes('"')) {
+    if (
+      str.includes(",") ||
+      str.includes("\n") ||
+      str.includes("\r") ||
+      str.includes('"')
+    ) {
       return `"${str.replace(/"/g, '""')}"`;
     }
 
     return str;
   };
 
-  
-
-  const downloadOrdersExcel = () => {
+  // Download orders as CSV
+  const downloadOrdersCSV = () => {
     if (!orders.length || !selectedBundle) return;
 
     const merchItems =
@@ -268,65 +270,97 @@ const ClubCoordinatorPortal = ({ onBack }) => {
       ...merchHeaders,
       "Combos",
       "Total Price",
+      "Order Date",
     ];
 
-    const rows = orders.map((order) => {
-      const merchData = merchItems.map((merchItem) => {
-        const orderItem = order.items.find(
-          (item) => item.merchName === merchItem.name
-        );
-        if (orderItem) {
-          return `${orderItem.quantity}x ${orderItem.size}${orderItem.nick ? ` (${orderItem.nick})` : ""}`;
-        }
-        if (order.combos) {
-          for (const combo of order.combos) {
-            const comboItem = combo.items.find(
-              (item) => item.itemName === merchItem.name
-            );
-            if (comboItem) {
-              return `${combo.quantity}x ${comboItem.size}${comboItem.hasNick && comboItem.nick ? ` (${comboItem.nick})` : ""} [Combo: ${combo.comboName}]`;
+    const csvContent = [
+      // Escape header row
+      headers.map((header) => escapeCSV(header)).join(","),
+      ...orders.map((order) => {
+        const merchData = merchItems.map((merchItem) => {
+          // Check individual items first
+          const orderItem = order.items.find(
+            (item) => item.merchName === merchItem.name
+          );
+          if (orderItem) {
+            const itemData = `${orderItem.quantity}x ${orderItem.size} - Rs${
+              orderItem.price
+            }${orderItem.nick ? ` (${orderItem.nick})` : ""}`;
+            return escapeCSV(itemData);
+          }
+
+          // Check combo items
+          if (order.combos) {
+            for (const combo of order.combos) {
+              const comboItem = combo.items.find(
+                (item) => item.itemName === merchItem.name
+              );
+              if (comboItem) {
+                const itemPrice = Math.round(combo.price / combo.items.length);
+                const comboData = `${combo.quantity}x ${
+                  comboItem.size
+                } - Rs${itemPrice}${
+                  comboItem.hasNick && comboItem.nick
+                    ? ` (${comboItem.nick})`
+                    : ""
+                } [Combo: ${combo.comboName}]`;
+                return escapeCSV(comboData);
+              }
             }
           }
-        }
-        return "";
-      });
-      const comboInfo =
-        order.combos && order.combos.length > 0
-          ? order.combos
-              .map(
-                (combo) =>
-                  `${combo.comboName || combo.name} (x${combo.quantity})`
-              )
-              .join("; ")
-          : "No combos";
 
-      return [
-        order.studentBITSID || "",
-        order.studentName || "",
-        ...merchData,
-        comboInfo,
-        order.totalPrice,
-      ];
+          return escapeCSV("-");
+        });
+        const comboInfo =
+          order.combos && order.combos.length > 0
+            ? order.combos
+                .map(
+                  (combo) =>
+                    `${combo.comboName || combo.name} (x${
+                      combo.quantity
+                    }) - Rs${combo.price}`
+                )
+                .join("; ")
+            : "No combos";
+
+        return [
+          escapeCSV(order.studentEmail || order.studentBITSID || ""),
+          escapeCSV(order.studentName || ""),
+          ...merchData,
+          escapeCSV(comboInfo),
+          escapeCSV(order.totalPrice),
+          escapeCSV(new Date(order.createdAt).toLocaleString()),
+        ].join(",");
+      }),
+    ].join("\n");
+
+    const BOM = "\uFEFF";
+    const blob = new Blob([BOM + csvContent], {
+      type: "text/csv;charset=utf-8;",
     });
 
-    const worksheetData = [headers, ...rows];
-
-    const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Orders");
-
-    XLSX.writeFile(
-      workbook,
-      `${selectedBundle?.title || "bundle"}_orders.xlsx`
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute(
+      "download",
+      `${selectedBundle?.title || "bundle"}_orders.csv`
     );
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
+  // Close orders modal
   const closeOrdersModal = () => {
     setOrdersModalOpen(false);
     setOrders([]);
     setSelectedBundle(null);
   };
 
+  // Create new bundle
   const createBundle = async () => {
     try {
       if (!bundleForm.title.trim()) {
@@ -564,8 +598,6 @@ const ClubCoordinatorPortal = ({ onBack }) => {
       description: "",
       image: "",
       nick: false,
-      nickPrice: "",
-      sizes: [],
     });
     setNewCombo({ name: "", items: [], comboPrice: "", description: "" });
     setNewSizeChart("");
@@ -627,8 +659,8 @@ const ClubCoordinatorPortal = ({ onBack }) => {
                   onClick={onBack}
                   className="flex items-center space-x-2 text-gray-600 hover:text-gray-800 transition-colors"
                 >
-                  <LogOut className="w-5 h-5" />
-                  <span className="font-medium">Logout</span>
+                  <ArrowLeft className="w-5 h-5" />
+                  <span className="font-medium">Back</span>
                 </button>
                 <div className="h-6 w-px bg-gray-300"></div>
                 <div className="flex items-center space-x-3">
@@ -816,7 +848,7 @@ const ClubCoordinatorPortal = ({ onBack }) => {
                         >
                           <input
                             type="checkbox"
-                            checked={Array.isArray(newMerchItem.sizes) && newMerchItem.sizes.includes(size)}
+                            checked={newMerchItem.sizes.includes(size)}
                             onChange={() => toggleMerchItemSize(size)}
                             className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                           />
@@ -1291,11 +1323,11 @@ const ClubCoordinatorPortal = ({ onBack }) => {
                 </div>
                 <div className="flex items-center space-x-3">
                   <button
-                    onClick={downloadOrdersExcel}
+                    onClick={downloadOrdersCSV}
                     disabled={!orders.length}
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Download Excel
+                    Download CSV
                   </button>
                   <button
                     onClick={closeOrdersModal}
@@ -1589,7 +1621,7 @@ const ClubCoordinatorPortal = ({ onBack }) => {
                                 </div>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {new Date(order.createdAt).toLocaleDateString()}
+                                {new Date(order.createdAt).toLocaleString()}
                               </td>
                             </tr>
                           );

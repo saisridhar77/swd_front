@@ -79,13 +79,13 @@ const LoginScreen = ({ onLogin }) => {
           )}
 
           <div className="mb-4">
-            <label className="block text-sm text-gray-700 mb-1">Email</label>
+            <label className="block text-sm text-gray-700 mb-1">Username</label>
             <input
               type="text"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-200"
-              placeholder="you@example.com"
+              placeholder="myClubBitsg"
               required
             />
           </div>
@@ -108,13 +108,6 @@ const LoginScreen = ({ onLogin }) => {
           >
             Login
           </button>
-
-          <div className="mt-6 text-center">
-            <p className="text-xs text-gray-500">
-              By signing in, you agree to our Terms of Service and Privacy
-              Policy
-            </p>
-          </div>
         </form>
       </div>
     </div>

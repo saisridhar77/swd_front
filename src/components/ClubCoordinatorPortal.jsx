@@ -660,7 +660,7 @@ const ClubCoordinatorPortal = ({ onBack }) => {
                   className="flex items-center space-x-2 text-gray-600 hover:text-gray-800 transition-colors"
                 >
                   <ArrowLeft className="w-5 h-5" />
-                  <span className="font-medium">Back</span>
+                  <span className="font-medium">Logout</span>
                 </button>
                 <div className="h-6 w-px bg-gray-300"></div>
                 <div className="flex items-center space-x-3">
